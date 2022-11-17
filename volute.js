@@ -63,7 +63,7 @@ export class Interpreter {
                     self.step();
                     self.run();
                 }
-            }, 200);
+            }, 20);
         }
     }
 
@@ -110,8 +110,10 @@ export class Interpreter {
             case 'J': this._jump(instruction.substring(1)); return;
             case 'h': this.isRunning = false; return;
             case 'f': this.stack.push(this._findByPrefix(instruction.substring(1))); break;
-            case 'p': this._prependWord(); break;
+            case 'p': this._appendWord(); break;
+            case 'o': this._addLineAfter(); break;
             case 'd': this._deleteWord(); break;
+            case 'u': this.stack.pop(); break;
         }
         this.instructionPointer.word++;
         this._adjustInstructionPointer();
@@ -149,8 +151,11 @@ export class Interpreter {
             '!': function(x) {return ['', 0, '0'].includes(x) * 1;}
         };
         const BINARY = {
+            '<': function(x, y) {return (x < y) * 1;},
             '>': function(x, y) {return (x > y) * 1;},
-            '+': function(x, y) {return x + y;}
+            '+': function(x, y) {return x + y;},
+            '&': function(x, y) {return x & y;},
+            '=': function(x, y) {return (x === y) * 1;}
         }
         if (UNARY.hasOwnProperty(operator)) {
             const arg = parseInt(this.stack.pop());
@@ -181,11 +186,12 @@ export class Interpreter {
                     return `${i}:${j}`;
     }
 
-    _prependWord() {
+    _appendWord() {
         const word = this.stack.pop();
         const [line, ind] = this.stack.pop().split(':').map((x) => parseInt(x));
-        this.program[line].splice(ind, 0, word);
-        if (line === this.instructionPointer.line && ind <= this.instructionPointer.word)
+        this.program[line].splice(ind + 1, 0, word);
+        this.stack.push(`${line}:${ind + 1}`);
+        if (line === this.instructionPointer.line && ind < this.instructionPointer.word)
             this.instructionPointer.word++;
         this._replaceContents();
     }
@@ -193,8 +199,18 @@ export class Interpreter {
     _deleteWord() {
         const [line, ind] = this.stack.pop().split(':').map((x) => parseInt(x));
         this.program[line].splice(ind, 1);
+        this.stack.push(`${line}:${Math.min(ind, this.program[line].length - 1)}`);
         if (line === this.instructionPointer.line && ind < this.instructionPointer.word)
             this.instructionPointer.word--;
+        this._replaceContents();
+    }
+
+    _addLineAfter() {
+        const line = parseInt(this.stack.pop().split(':', 1));
+        this.program.splice(line + 1, 0, []);
+        this.stack.push(`${line + 1}:0`);
+        if (line < this.instructionPointer.line)
+            this.instructionPointer.line++;
         this._replaceContents();
     }
 
