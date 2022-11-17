@@ -1,0 +1,38 @@
+html {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+}
+
+.column {
+    margin: 0;
+    padding: 0 1em;
+}
+
+#content {
+    padding: 1em;
+    font-family: sans-serif;
+    flex-grow: 1;
+}
+
+#toot {
+    width: 100%;
+    height: 50vh;
+    padding: 1px;
+}
+#toot:not(:focus-visible) {
+    box-shadow: 0 0 0 1px gray;
+}
+
+#toot > p:first-child {
+    padding-top: 0;
+}
+
+span.letter {
+    white-space: pre-wrap;
+}

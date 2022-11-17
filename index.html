@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>🏛️ Toot Volute 🏛️</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="module">
+        import { main } from "./main.js";
+        main();
+    </script>
+    <!--
+        Toot Volute - an interpreter for Mastodon posts, following Luci for Chai Tea
+        Copyright (C) 2022 Amir Livne Bar-on
+
+        This program is free software: you can redistribute it and/or modify
+        it under the terms of the GNU General Public License as published by
+        the Free Software Foundation, either version 3 of the License, or
+        (at your option) any later version.
+
+        This program is distributed in the hope that it will be useful,
+        but WITHOUT ANY WARRANTY; without even the implied warranty of
+        MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+        GNU General Public License for more details.
+
+        You should have received a copy of the GNU General Public License
+        along with this program.  If not, see <https://www.gnu.org/licenses/>.
+    -->
+</head>
+<body>
+    <div><pre class="column"></pre></div>
+    <div id="content">
+        <h1>Toot Volute Interpreter</h1>
+        <div id="toot" contenteditable="true"></div>
+        <p>
+            <button id="start">Start</button>
+            <button id="step">Step</button>
+            <button id="run">Run</button>
+            <button id="stop">Stop</button>
+        </p>
+        <h2>Interpreter state</h2>
+        <div id="state">
+            [Not running]
+        </div>
+    </div>
+    <div><pre class="column"></pre></div>
+</body>
+</html>
