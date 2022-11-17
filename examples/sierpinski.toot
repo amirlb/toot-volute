@@ -1,0 +1,10 @@
+https://en.wikipedia.org/wiki/Sierpiński_triangle
+
+-- volute
+fhttp o o
+:row li m>0 j:next li lm> m& li m= li m+1 si j:eq lx2 p J:row :eq lx1 p J:row
+:next lm> m+1 sm> fi dw lz p u lm> m>15 j:end o J:row :end h
+x1M x2~ zi0 i0
+
+// By popular demand - drawing the Sierpiński triangle
+// Makes real use of self-modifying code: note the treatment of the "m>" command as a variable
