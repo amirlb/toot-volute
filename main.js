@@ -45,7 +45,7 @@ function drawColumns() {
     }
 }
 
-function updateInterpreterState({ isRunning, currentInstruction }) {
+function updateInterpreterState({ isRunning, currentInstruction, stack }) {
     const monitor = document.getElementById('state');
     if (!isRunning) {
         monitor.innerText = '[Not running]';
@@ -53,7 +53,11 @@ function updateInterpreterState({ isRunning, currentInstruction }) {
     }
 
     monitor.innerHTML = `
-        <p>Instruction pointer: ${currentInstruction ? currentInstruction[0] : null}
+        <p>Instruction pointer: ${currentInstruction}</p>
+        <p>Stack:
+        <ul>
+        ${stack.map(item => `<li>${item}</li>`).join('\n')}
+        </ul></p>
     `;
 }
 

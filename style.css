@@ -6,7 +6,6 @@ body {
     margin: 0;
     height: 100%;
     display: flex;
-    flex-direction: row;
 }
 
 .column {
@@ -27,12 +26,4 @@ body {
 }
 #toot:not(:focus-visible) {
     box-shadow: 0 0 0 1px gray;
-}
-
-#toot > p:first-child {
-    padding-top: 0;
-}
-
-span.letter {
-    white-space: pre-wrap;
 }
