@@ -1,3 +1,5 @@
+"use strict";
+
 // Toot Volute - an interpreter for Mastodon posts, following Luci for Chai Tea
 // Copyright (C) 2022 Amir Livne Bar-on
 // 
@@ -14,111 +16,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-export class Interpreter {
-    constructor(elt, monitor) {
-        this.elt = elt;
-        this.monitor = monitor;
-        this.isRunning = false;
-        this.program = [];
-        this.instructionPointer = {line: 0, word: 0};
-        this.stack = [];
-    }
-
-    async start () {
-        if (this.isRunning)
-            throw 'Already running';
-
-        this._parseToot();
-        this._replaceContents();
-
-        for (let i = 0; i < this.program.length - 1; i++) {
-            const prevLine = (i === 0) ? '' : this.program[i - 1];
-            const line = this.program[i];
-            if (prevLine.length === 0 && this._isVoluteHeader(line)) {
-                this.isRunning = true;
-                this.instructionPointer = {line: i, word: line.length};
-                this.stack = [];
-                this._adjustInstructionPointer();
-                break;
-            }
-        }
-
-        this._updateView();
-    }
-
-    step() {
-        if (!this.isRunning)
-            throw 'Not running';
-
-        const currentInstruction = this.program[this.instructionPointer.line][this.instructionPointer.word];
-        this._performInstruction(currentInstruction);
-        this._updateView();
-    }
-
-    run() {
-        if (this.isRunning) {
-            const self = this;
-            setTimeout(function () {
-                if (self.isRunning) {
-                    self.step();
-                    self.run();
-                }
-            }, 20);
-        }
-    }
-
-    stop() {
-        this.isRunning = false;
-        this._updateView();
-    }
-
-    _adjustInstructionPointer() {
-        while (this.instructionPointer.word >= this.program[this.instructionPointer.line].length) {
-            this.instructionPointer.line++;
-            this.instructionPointer.word = 0;
-            if (this.instructionPointer.line >= this.program.length) {
-                // TODO: only stop running if no handlers left
-                this.isRunning = false;
-                return;
-            }
-        }
-    }
-
-    _performInstruction(instruction) {
-        const FALSE = [0, '', '0'];
-        const SYNONYMS = {
-            '🔼': 'l',
-            '🔽': 's',
-            '🧮': 'm',
-            '❓': 'j',
-            '❗': 'J',
-            '⛔': 'h',
-            '🔍': 'f',
-            '✏️': 'p',
-            '🗑️': 'd'
-        };
-
-        for (const [from, to] of Object.entries(SYNONYMS))
-            if (instruction.startsWith(from))
-                instruction = to + instruction.substring(from.length);
-
-        switch (instruction[0]) {
-            case 'l': this._performLoad(instruction.substring(1)); break;
-            case 's': this._performSave(instruction.substring(1)); break;
-            case 'm': this._performMath(instruction[1], instruction.substring(2)); break;
-            case 'j': if (!FALSE.includes(this.stack.pop())) {this._jump(instruction.substring(1)); return;} break;
-            case 'J': this._jump(instruction.substring(1)); return;
-            case 'h': this.isRunning = false; return;
-            case 'f': this.stack.push(this._findByPrefix(instruction.substring(1))); break;
-            case 'p': this._appendWord(); break;
-            case 'o': this._addLineAfter(); break;
-            case 'd': this._deleteWord(); break;
-            case 'u': this.stack.pop(); break;
-        }
-        this.instructionPointer.word++;
-        this._adjustInstructionPointer();
-    }
-
+class Interpreter {
     _performLoad(prefix) {
         for (const line of this.program) {
             for (const word of line) {
@@ -213,56 +111,82 @@ export class Interpreter {
             this.instructionPointer.line++;
         this._replaceContents();
     }
-
-    _updateView() {
-        if (this.isRunning) {
-            // const line =
-            //     this.instructionPointer.line === 0
-            //         ? this.elt.firstChild
-            //         : this.elt.getElementsByTagName('br').item(this.instructionPointer.line - 1);
-
-            // const range = document.createRange();
-            // range.setStart(line, this.instructionPointer.word);
-            // range.setEnd(line, this.instructionPointer.word + 1);
-
-            // const selection = window.getSelection();
-            // selection.removeAllRanges();
-            // selection.addRange(range);
-
-            const currentInstruction = this.program[this.instructionPointer.line][this.instructionPointer.word];
-            this.monitor({
-                isRunning: true,
-                currentInstruction: `${this.instructionPointer.line}:${this.instructionPointer.word} ${currentInstruction}`,
-                stack: this.stack
-            });
-        } else {
-            this.monitor({
-                isRunning: false,
-                currentInstruction: null,
-                stack: []
-            });
-        }
-    }
-
-    _parseToot() {
-        this.program = this.elt.innerText.split('\n').map(function(line) {
-            line = line.trim();
-            if (line.length === 0)
-                return [];
-            else
-                return line.split(/\s+/);
-        });
-    }
-
-    _replaceContents() {
-        this.elt.innerText = this.program.map((line) => line.join(' ')).join('\n');
-    }
-
-    _isVoluteHeader(line) {
-        if (line.length === 1 && /^🐌+$/.test(line[0]))
-            return true;
-        if (line.length === 2 && /^--+$/.test(line[0]) && line[1] === 'volute')
-            return true;
-        return false;
-    }
 }
+
+function setupHandlers(program) {
+    // TODO: implement time, mouse and keyboard event handlers. for each one,
+    //       ask the program where the volute code for handling the event is
+    //       and start a new thread there if it's defined.
+}
+
+async function onRun() {
+    const programText = document.getElementById('toot-input').value;
+    document.getElementById('toot-input').classList.add('hidden');
+    document.getElementById('toot').classList.remove('hidden');
+    const programView = await ProgramView.create(document.getElementById('toot'));
+
+    document.getElementById('buttons').classList.add('hidden');
+    programView.setProgram(programText)
+    const program = new Program(programView, false);
+    setupHandlers(program);
+    const startLocation = program.getStartLocation();
+    const mainThread = new Thread('main', program, startLocation, [], null);
+    while (mainThread.isRunning())
+        mainThread.step();
+    program.updateView();
+}
+
+let isFastForward = false;
+
+function stepAutomatically(thread) {
+    if (!thread.isRunning())
+        isFastForward = false;
+    if (!isFastForward) {
+        document.getElementById('fast').innerText = 'FF';
+        document.getElementById('fast').setAttribute('running', false);
+        return;
+    }
+
+    document.getElementById('fast').innerText = '🏃 FF';
+    document.getElementById('step').click();
+    setTimeout(() => {stepAutomatically(thread);}, 100);
+}
+
+async function onDebug() {
+    const programText = document.getElementById('toot-input').value;
+    document.getElementById('toot-input').classList.add('hidden');
+    document.getElementById('toot').classList.remove('hidden');
+    const programView = await ProgramView.create(document.getElementById('toot'));
+
+    const debugView = new DebugView(document.getElementById('toot'), document.getElementById('internals'));
+    document.getElementById('run').classList.add('hidden');
+    document.getElementById('debug').classList.add('hidden');
+    document.getElementById('step').classList.remove('hidden');
+    document.getElementById('fast').classList.remove('hidden');
+
+    programView.setProgram(programText)
+    const program = new Program(programView, true);
+    // TODO: event handlers should maybe fire only when no thread is running?
+    const mainThread = new Thread('main', program, program.getStartLocation(), [], debugView);
+    if (!mainThread.isRunning())
+        document.getElementById('step').disabled = true;
+    document.getElementById('step').addEventListener('click', () => {
+        mainThread.step();
+        if (!mainThread.isRunning())
+            document.getElementById('step').disabled = true;
+    });
+    document.getElementById('fast').addEventListener('click', () => {
+        isFastForward = !isFastForward;
+        document.getElementById('fast').setAttribute('running', isFastForward);
+        stepAutomatically(mainThread);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('run').addEventListener('click', onRun);
+    document.getElementById('toot-input').addEventListener('keypress', (event) => {
+        if (event.key === 'Enter' && (event.metaKey || event.ctrlKey))
+            onRun();
+    });
+    document.getElementById('debug').addEventListener('click', onDebug);
+});

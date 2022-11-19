@@ -1,3 +1,5 @@
+"use strict";
+
 // Toot Volute - an interpreter for Mastodon posts, following Luci for Chai Tea
 // Copyright (C) 2022 Amir Livne Bar-on
 // 
@@ -14,12 +16,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import { Interpreter } from './volute.js';
-
 function drawColumns() {
-    // const HEAD = [' ___ ', '@   @'];
-    // const BULK = ' ||| ';
-    // const BASE = ['(___)'];
     // Template taken from
     //     https://ascii.co.uk/art/column
     // where it's credited to
@@ -27,6 +24,11 @@ function drawColumns() {
     const HEAD = ['  ___     ___', ' / _ \\===/ _ \\', '( (.\\ oOo /.) )', ' \\__/=====\\__/'];
     const BULK = '    |||||||';
     const BASE = ['    (oOoOo)', '    J%%%%%L', '   ZZZZZZZZZ'];
+
+    // Maybe use smaller ones from the same source?
+    // const HEAD = [' ___ ', '@   @'];
+    // const BULK = ' ||| ';
+    // const BASE = ['(___)'];
 
     for (const elt of document.getElementsByClassName('column')) {
         elt.innerText = [...HEAD, ...BASE].join('\n');
@@ -45,29 +47,7 @@ function drawColumns() {
     }
 }
 
-function updateInterpreterState({ isRunning, currentInstruction, stack }) {
-    const monitor = document.getElementById('state');
-    if (!isRunning) {
-        monitor.innerText = '[Not running]';
-        return;
-    }
-
-    monitor.innerHTML = `
-        <p>Instruction pointer: ${currentInstruction}</p>
-        <p>Stack:
-        <ul>
-        ${stack.map(item => `<li>${item}</li>`).join('\n')}
-        </ul></p>
-    `;
-}
-
-export function main() {
+document.addEventListener('DOMContentLoaded', () => {
     drawColumns();
     window.addEventListener('resize', drawColumns);
-
-    const volute = new Interpreter(document.getElementById('toot'), updateInterpreterState);
-    document.getElementById('start').addEventListener('click', function() {volute.start();});
-    document.getElementById('step').addEventListener('click', function() {volute.step();});
-    document.getElementById('run').addEventListener('click', function() {volute.run();});
-    document.getElementById('stop').addEventListener('click', function() {volute.stop();});
-}
+});

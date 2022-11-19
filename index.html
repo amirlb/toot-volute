@@ -4,10 +4,6 @@
     <meta charset="UTF-8">
     <title>🏛️ Toot Volute 🏛️</title>
     <link rel="stylesheet" href="style.css">
-    <script type="module">
-        import { main } from "./main.js";
-        main();
-    </script>
     <!--
         Toot Volute - an interpreter for Mastodon posts, following Luci for Chai Tea
         Copyright (C) 2022 Amir Livne Bar-on
@@ -30,18 +26,24 @@
     <div><pre class="column"></pre></div>
     <div id="content">
         <h1>Toot Volute Interpreter</h1>
-        <div id="toot" contenteditable="true"></div>
-        <p>
-            <button id="start">Start</button>
-            <button id="step">Step</button>
+        <textarea id="toot-input" autofocus></textarea>
+        <div id="toot" class="hidden"></div>
+        <div id="buttons">
             <button id="run">Run</button>
-            <button id="stop">Stop</button>
-        </p>
-        <h2>Interpreter state</h2>
-        <div id="state">
-            [Not running]
+            <button id="debug">Debug</button>
+            <button id="step" class="hidden">Step</button>
+            <button id="fast" class="hidden">FF</button>
         </div>
+        <div id="internals"></div>
+        <div id="source">Contributions are welcome <a href="https://github.com/amirlb/toot-volute/" target="_blank">on Github</a></div>
     </div>
     <div><pre class="column"></pre></div>
+    <script src="columns.js"></script>
+    <script src="intl-segmenter-polyfill.js"></script>
+    <script src="ProgramView.js"></script>
+    <script src="Program.js"></script>
+    <script src="Thread.js"></script>
+    <script src="DebugView.js"></script>
+    <script src="volute.js"></script>
 </body>
 </html>
