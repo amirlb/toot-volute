@@ -121,6 +121,22 @@ class Program {
             this.#entryPoint = { row: this.#entryPoint.row + 1, col: this.#entryPoint.col };
     }
 
+    getLetterAt(location) {
+        return this.#lines[location.row][location.col].letter;
+    }
+
+    getClickHandlerLocations() {
+        const clickHandlers = [];
+        let location = this.#entryPoint;
+        while (location !== null) {
+            const word = this.readWord(location, false);
+            if (word.text.startsWith('MOUSE'))
+                clickHandlers.push(location);
+            location = this.nextWordLocation({ row: location.row, col: location.col + word.length });
+        }
+        return clickHandlers;
+    }
+
     #updateEntryPoints() {
         this.#entryPoint = null;
 

@@ -16,107 +16,77 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-class Interpreter {
-    _performLoad(prefix) {
-        for (const line of this.program) {
-            for (const word of line) {
-                if (word.startsWith(prefix)) {
-                    this.stack.push(word.substring(prefix.length));
-                    return
-                }
-            }
+class Machine {
+    #program;
+    #debugView;
+    #threads;
+    #currentThread;
+
+    constructor(program, debugView) {
+        this.#program = program;
+        this.#debugView = debugView;
+        this.#threads = [];
+        this.#currentThread = 0;
+    }
+
+    startThread(name, startLocation, input) {
+        if (startLocation === null)
+            return;
+        this.#threads.push(new Thread(name, this.#program, startLocation, input, this.#debugView));
+    }
+
+    startMainThread() {
+        this.startThread('main', this.#program.getStartLocation(), []);
+    }
+
+    isRunning() {
+        return this.#threads.length > 0;
+    }
+
+    isFinished() {
+        if (this.isRunning())
+            return false;
+        if (this.#program.getClickHandlerLocations().length > 0)
+            return false;
+
+        // No running threads and no event handlers
+        return true;
+    }
+
+    step() {
+        if (!this.isRunning())
+            return;
+
+        this.#threads[this.#currentThread].step();
+        if (!this.#threads[this.#currentThread].isRunning()) {
+            this.#threads.splice(this.#currentThread, 1);
+            if (this.#currentThread >= this.#threads.length)
+                this.#currentThread = 0;
         }
-    }
-
-    _performSave(prefix) {
-        const value = this.stack.pop();
-        for (const line of this.program) {
-            for (let i = 0; i < line.length; i++) {
-                if (line[i].startsWith(prefix)) {
-                    line[i] = prefix + value;
-                    this._replaceContents();
-                    return;
-                }
-            }
-        }
-        this.program[this.program.length - 1].push(prefix + value);
-        this._replaceContents();
-    }
-
-    _performMath(operator, operand) {
-        // TODO: add more operators
-        const UNARY = {
-            '!': function(x) {return ['', 0, '0'].includes(x) * 1;}
-        };
-        const BINARY = {
-            '<': function(x, y) {return (x < y) * 1;},
-            '>': function(x, y) {return (x > y) * 1;},
-            '+': function(x, y) {return x + y;},
-            '&': function(x, y) {return x & y;},
-            '=': function(x, y) {return (x === y) * 1;}
-        }
-        if (UNARY.hasOwnProperty(operator)) {
-            const arg = parseInt(this.stack.pop());
-            this.stack.push(UNARY[operator](arg).toString());
-        } else if (BINARY.hasOwnProperty(operator)) {
-            const arg2 = (operand.length === 0) ? parseInt(this.stack.pop()) : parseInt(operand);
-            const arg1 = parseInt(this.stack.pop());
-            this.stack.push(BINARY[operator](arg1, arg2).toString());
-        }
-    }
-
-    _jump(label) {
-        for (let i = 0; i < this.program.length; i++) {
-            for (let j = 0; j < this.program[i].length; j++) {
-                if (this.program[i][j] === label) {
-                    this.instructionPointer.line = i;
-                    this.instructionPointer.word = j;
-                    return;
-                }
-            }
-        }
-    }
-
-    _findByPrefix(prefix) {
-        for (let i = 0; i < this.program.length; i++)
-            for (let j = 0; j < this.program[i].length; j++)
-                if (this.program[i][j].startsWith(prefix))
-                    return `${i}:${j}`;
-    }
-
-    _appendWord() {
-        const word = this.stack.pop();
-        const [line, ind] = this.stack.pop().split(':').map((x) => parseInt(x));
-        this.program[line].splice(ind + 1, 0, word);
-        this.stack.push(`${line}:${ind + 1}`);
-        if (line === this.instructionPointer.line && ind < this.instructionPointer.word)
-            this.instructionPointer.word++;
-        this._replaceContents();
-    }
-
-    _deleteWord() {
-        const [line, ind] = this.stack.pop().split(':').map((x) => parseInt(x));
-        this.program[line].splice(ind, 1);
-        this.stack.push(`${line}:${Math.min(ind, this.program[line].length - 1)}`);
-        if (line === this.instructionPointer.line && ind < this.instructionPointer.word)
-            this.instructionPointer.word--;
-        this._replaceContents();
-    }
-
-    _addLineAfter() {
-        const line = parseInt(this.stack.pop().split(':', 1));
-        this.program.splice(line + 1, 0, []);
-        this.stack.push(`${line + 1}:0`);
-        if (line < this.instructionPointer.line)
-            this.instructionPointer.line++;
-        this._replaceContents();
     }
 }
 
-function setupHandlers(program) {
-    // TODO: implement time, mouse and keyboard event handlers. for each one,
-    //       ask the program where the volute code for handling the event is
-    //       and start a new thread there if it's defined.
+function setupHandlers(program, machine) {
+    document.getElementById('toot').addEventListener('click', (event) => {
+        if (event.target.tagName.toLowerCase() !== 'span')
+            return;
+        const clickLocation = { row: 0, col: -1 };
+        for (let node = event.target; node !== null; node = node.previousSibling) {
+            if (node.tagName.toLowerCase() === 'br')
+                clickLocation.row++;
+            else if (clickLocation.row === 0)
+                clickLocation.col++;
+        }
+        for (const startLocation of program.getClickHandlerLocations()) {
+            const location = `${clickLocation.row + 1}:${clickLocation.col + 1}`;
+            const threadName = `mouse:${location}`;
+            machine.startThread(threadName, startLocation, [location]);
+        }
+        while (machine.isRunning())
+            machine.step();
+        program.updateView();
+    });
+    // TODO: implement time and keyboard event handlers
 }
 
 async function onRun() {
@@ -126,20 +96,20 @@ async function onRun() {
     const programView = await ProgramView.create(document.getElementById('toot'));
 
     document.getElementById('buttons').classList.add('hidden');
-    programView.setProgram(programText)
+    programView.setProgram(programText);
     const program = new Program(programView, false);
-    setupHandlers(program);
-    const startLocation = program.getStartLocation();
-    const mainThread = new Thread('main', program, startLocation, [], null);
-    while (mainThread.isRunning())
-        mainThread.step();
+    const machine = new Machine(program, null);
+    setupHandlers(program, machine);
+    machine.startMainThread();
+    while (!machine.isRunning())
+        machine.step();
     program.updateView();
 }
 
 let isFastForward = false;
 
-function stepAutomatically(thread) {
-    if (!thread.isRunning())
+function stepAutomatically(machine) {
+    if (!machine.isRunning())
         isFastForward = false;
     if (!isFastForward) {
         document.getElementById('fast').innerText = 'FF';
@@ -149,7 +119,7 @@ function stepAutomatically(thread) {
 
     document.getElementById('fast').innerText = '🏃 FF';
     document.getElementById('step').click();
-    setTimeout(() => {stepAutomatically(thread);}, 100);
+    setTimeout(() => {stepAutomatically(machine);}, 100);
 }
 
 async function onDebug() {
@@ -166,19 +136,37 @@ async function onDebug() {
 
     programView.setProgram(programText)
     const program = new Program(programView, true);
-    // TODO: event handlers should maybe fire only when no thread is running?
-    const mainThread = new Thread('main', program, program.getStartLocation(), [], debugView);
-    if (!mainThread.isRunning())
-        document.getElementById('step').disabled = true;
+    const machine = new Machine(program, debugView);
+
+    document.getElementById('toot').addEventListener('click', (event) => {
+        if (event.target.tagName.toLowerCase() !== 'span')
+            return;
+        const clickLocation = { row: 0, col: -1 };
+        for (let node = event.target; node !== null; node = node.previousSibling) {
+            if (node.tagName.toLowerCase() === 'br')
+                clickLocation.row++;
+            else if (clickLocation.row === 0)
+                clickLocation.col++;
+        }
+        for (const startLocation of program.getClickHandlerLocations()) {
+            const location = `${clickLocation.row + 1}:${clickLocation.col + 1}`;
+            const threadName = `mouse:${location}`;
+            machine.startThread(threadName, startLocation, [location]);
+        }
+        if (machine.isRunning())
+            document.getElementById('step').disabled = false;
+    });
+
+    machine.startMainThread();
     document.getElementById('step').addEventListener('click', () => {
-        mainThread.step();
-        if (!mainThread.isRunning())
+        machine.step();
+        if (!machine.isRunning())
             document.getElementById('step').disabled = true;
     });
     document.getElementById('fast').addEventListener('click', () => {
         isFastForward = !isFastForward;
         document.getElementById('fast').setAttribute('running', isFastForward);
-        stepAutomatically(mainThread);
+        stepAutomatically(machine);
     });
 }
 

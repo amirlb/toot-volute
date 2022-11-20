@@ -66,7 +66,14 @@ class Thread {
             case 'p': this.#appendWord(); break;
             case 'o': this.#addLineAfter(); break;
             case 'd': this.#deleteWord(); break;
+            case 'c': this.#deleteLetter(); break;
+            case 'n': this.#paste(); break;
+            case 't': this.#moveTo(instruction.substring(1)); break;
             case 'u': this.#memory.pop(); break;
+            case 'v': let a = this.#memory.pop(); let b = this.#memory.pop(); this.#memory.push(a); this.#memory.push(b); break;
+            case 'w': let x = this.#memory.pop(); this.#memory.push(x); this.#memory.push(x); break;
+            case 'y': this.#readLetter(); break;
+            case 'r': this.#indirectJump(); return;
         }
         this.#instructionPointer = this.#program.nextWordLocation({
             row: this.#instructionPointer.row,
@@ -131,9 +138,12 @@ class Thread {
             '>': function(x, y) {return (x > y) * 1;},
             '+': function(x, y) {return x + y;},
             '&': function(x, y) {return x & y;},
-            '=': function(x, y) {return (x === y) * 1;}
         }
-        if (UNARY.hasOwnProperty(operator)) {
+        if (operator === '=') {
+            const arg2 = (operand.length === 0) ? this.#memory.pop().toString() : operand;
+            const arg1 = this.#memory.pop().toString();
+            this.#memory.push(arg1 === arg2 ? '1' : '0');
+        } else if (UNARY.hasOwnProperty(operator)) {
             const arg = parseInt(this.#memory.pop());
             this.#memory.push(UNARY[operator](arg).toString());
         } else if (BINARY.hasOwnProperty(operator)) {
@@ -145,6 +155,10 @@ class Thread {
 
     #jump(prefix) {
         this.#instructionPointer = this.#program.findByPrefix(prefix);
+    }
+
+    #indirectJump() {
+        this.#instructionPointer = this.#popLocation();
     }
 
     #pushLocation(location) {
@@ -191,6 +205,30 @@ class Thread {
         this.#pushLocation(location);
     }
 
+    #deleteLetter() {
+        const location = this.#popLocation();
+        this.#program.replace(location, 1, '');
+        if (location.row === this.#instructionPointer.row && location.col < this.#instructionPointer.col) {
+            this.#instructionPointer = {
+                row: this.#instructionPointer.row,
+                col: this.#instructionPointer.col - 1
+            }
+        }
+        this.#pushLocation(location);
+    }
+
+    #paste() {
+        const text = this.#memory.pop();
+        const location = this.#popLocation();
+        const length = this.#program.replace(location, 0, text);
+        if (location.row === this.#instructionPointer.row && location.col <= this.#instructionPointer.col) {
+            this.#instructionPointer = {
+                row: this.#instructionPointer.row,
+                col: this.#instructionPointer.col + length
+            }
+        }
+    }
+
     #addLineAfter() {
         const { row } = this.#popLocation();
         this.#program.addLine(row + 1);
@@ -201,5 +239,20 @@ class Thread {
             };
         }
         this.#pushLocation({ row: row + 1, col: 0 });
+    }
+
+    #moveTo(direction) {
+        const { row, col } = this.#popLocation();
+        switch(direction) {
+            case 'up': this.#pushLocation({ row: row - 1, col }); break;
+            case 'down': this.#pushLocation({ row: row + 1, col }); break;
+            case 'left': this.#pushLocation({ row, col: col - 1 }); break;
+            case 'right': this.#pushLocation({ row, col: col + 1 }); break;
+        }
+    }
+
+    #readLetter() {
+        const location = this.#popLocation();
+        this.#memory.push(this.#program.getLetterAt(location));
     }
 }

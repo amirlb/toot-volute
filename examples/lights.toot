@@ -1,0 +1,27 @@
+Click on a heart to flip its color and the color of the surrounding hearts.
+Can you make all hearts beat red?
+
+    ┌────────┐
+    │🤍❤️🤍❤️🤍│
+    │❤️🤍❤️🤍❤️│
+    │🤍❤️🤍❤️🤍│
+    │❤️🤍❤️🤍❤️│
+    │🤍❤️🤍❤️🤍│
+    └────────┘
+
+--- volute
+
+halt
+
+MOUSE w y m=❤️ j:label1 w y m=🤍 j:label1 halt
+:label1 tleft w f:label2 v J:flip
+:label2 tright w f:label3 v J:flip
+:label3 tright w f:label4 v J:flip
+:label4 tleft tup w f:label5 v J:flip
+:label5 tdown tdown fhalt v J:flip
+:flip w y m=❤️ j:isRed  w y m=🤍 j:isWhite u return
+:isRed c lWH n return
+:isWhite c lRH n return
+
+RH❤️
+WH🤍
