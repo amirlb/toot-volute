@@ -101,7 +101,7 @@ async function onRun() {
     const machine = new Machine(program, null);
     setupHandlers(program, machine);
     machine.startMainThread();
-    while (!machine.isRunning())
+    while (machine.isRunning())
         machine.step();
     program.updateView();
 }
